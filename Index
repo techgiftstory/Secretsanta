@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Secret Santa 🎅</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.card {
+    background: #1c1c1c;
+    padding: 30px;
+    border-radius: 12px;
+    width: 320px;
+    text-align: center;
+}
+select, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 12px;
+    border-radius: 6px;
+    border: none;
+}
+button {
+    background: crimson;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+.result {
+    margin-top: 20px;
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>🎁 Secret Santa</h2>
+
+    <select id="nameSelect">
+        <option value="">Select your name</option>
+    </select>
+
+    <button onclick="revealSanta()">Reveal My Santa</button>
+
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+let assignments = {};
+let peopleData = [];
+
+fetch('data.txt')
+    .then(res => res.text())
+    .then(text => {
+        peopleData = text.trim().split('\n').map(line => {
+            let [name, status] = line.split(',');
+            return { name: name.trim(), present: status.trim() === 'true' };
+        });
+
+        populateDropdown();
+        generateAssignments();
+    });
+
+function populateDropdown() {
+    const select = document.getElementById('nameSelect');
+    peopleData.forEach(p => {
+        let option = document.createElement('option');
+        option.value = p.name;
+        option.textContent = p.name;
+        select.appendChild(option);
+    });
+}
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function generateAssignments() {
+    const present = peopleData.filter(p => p.present).map(p => p.name);
+    const absent = peopleData.filter(p => !p.present).map(p => p.name);
+
+    shuffle(present);
+    shuffle(absent);
+
+    assignCircular(present);
+    assignCircular(absent);
+}
+
+function assignCircular(group) {
+    if (group.length < 2) return;
+    for (let i = 0; i < group.length; i++) {
+        let giver = group[i];
+        let receiver = group[(i + 1) % group.length];
+        assignments[giver] = receiver;
+    }
+}
+
+function revealSanta() {
+    const name = document.getElementById('nameSelect').value;
+    const result = document.getElementById('result');
+
+    if (!name) {
+        result.textContent = "Please select your name.";
+        return;
+    }
+
+    result.innerHTML = `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
+}
+</script>
+
+</body>
+</html>
