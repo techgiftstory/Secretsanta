@@ -21,12 +21,20 @@ body {
     height: 100vh;
 }
 
-/* Snow canvas */
+/* Snow */
 #snow {
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
+}
+
+/* Confetti */
+#confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
 }
 
 /* Main card */
@@ -35,7 +43,7 @@ body {
     z-index: 2;
     width: 90vw;
     max-width: 380px;
-    padding: 26px 22px;
+    padding: 26px 22px 32px;
     border-radius: 18px;
     background: rgba(28,28,28,0.95);
     box-shadow: 0 0 30px rgba(255,255,255,0.18);
@@ -67,35 +75,31 @@ button {
     font-size: 20px;
 }
 
-/* Dancing Santa */
-.santa {
+/* 🎄 Merry Christmas Footer */
+.footer {
     position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 90px;
+    bottom: 14px;
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: #ffd700;
     z-index: 2;
-    animation: bounce 1.2s infinite alternate;
+    animation: glow 2s infinite alternate;
 }
 
-@keyframes bounce {
-    from { transform: translateY(0); }
-    to { transform: translateY(-14px); }
+@keyframes glow {
+    from { text-shadow: 0 0 6px #ffdf70; }
+    to   { text-shadow: 0 0 14px #ffb700; }
 }
 </style>
 </head>
 
 <body>
 
-<!-- ❄️ Snow -->
 <canvas id="snow"></canvas>
+<canvas id="confetti"></canvas>
 
-<!-- 🎅 Dancing Santa (NEW GIF) -->
-<img
-  src="https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"
-  class="santa"
-  alt="Dancing Santa">
-
-<!-- 🎁 Main UI -->
 <div class="card">
     <h2>🎁 Secret Santa</h2>
 
@@ -108,13 +112,15 @@ button {
     <div class="result" id="result"></div>
 </div>
 
-<!-- EmailJS library (MUST load before use) -->
+<div class="footer">🎄 Merry Christmas 🎄</div>
+
+<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js" defer></script>
 
 <script>
 /* ================= EMAILJS INIT ================= */
 window.addEventListener("DOMContentLoaded", function () {
-    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 REPLACE THIS
+    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 replace with your key
 });
 
 /* ================= FIXED SEED ================= */
@@ -134,7 +140,6 @@ function seededRandom(seed) {
         return (h >>> 0) / 4294967296;
     };
 }
-
 const rand = seededRandom(SEED);
 
 function shuffle(arr) {
@@ -144,7 +149,7 @@ function shuffle(arr) {
     }
 }
 
-/* ================= SECRET SANTA LOGIC ================= */
+/* ================= SECRET SANTA ================= */
 let assignments = {};
 let peopleData = [];
 
@@ -190,66 +195,84 @@ function assignCircular(group) {
 
 function revealSanta() {
     const name = document.getElementById('nameSelect').value;
-    if (!name) {
-        alert("Please select your name");
-        return;
-    }
+    if (!name) return;
 
     document.getElementById('result').innerHTML =
-        `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
+        `🎁 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
 
+    burstConfetti();
     sendAdminEmail(name);
 }
 
-/* ================= EMAIL NOTIFICATION ================= */
+/* ================= EMAIL ================= */
 function sendAdminEmail(name) {
     emailjs.send(
         "service_3vcerpc",
         "template_fw1fyrt",
-        {
-            name: name,
-            time: new Date().toLocaleString()
-        }
-    ).then(
-        function (response) {
-            console.log("✅ Email sent", response.status, response.text);
-        },
-        function (error) {
-            console.error("❌ Email failed", error);
-            alert("Email failed. Check console.");
-        }
+        { name, time: new Date().toLocaleString() }
     );
 }
 
-/* ================= SNOWFALL ================= */
-const canvas = document.getElementById("snow");
-const ctx = canvas.getContext("2d");
+/* ================= CONFETTI ================= */
+const confettiCanvas = document.getElementById("confetti");
+const cctx = confettiCanvas.getContext("2d");
+confettiCanvas.width = window.innerWidth;
+confettiCanvas.height = window.innerHeight;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function burstConfetti() {
+    let particles = Array.from({ length: 120 }, () => ({
+        x: confettiCanvas.width / 2,
+        y: confettiCanvas.height / 2,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.7) * 8,
+        r: Math.random() * 4 + 2,
+        c: `hsl(${Math.random()*360},100%,60%)`
+    }));
+
+    let frame = 0;
+    function animate() {
+        cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.2;
+            cctx.fillStyle = p.c;
+            cctx.beginPath();
+            cctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            cctx.fill();
+        });
+        frame++;
+        if (frame < 60) requestAnimationFrame(animate);
+        else cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    }
+    animate();
+}
+
+/* ================= SNOW ================= */
+const snow = document.getElementById("snow");
+const sctx = snow.getContext("2d");
+snow.width = window.innerWidth;
+snow.height = window.innerHeight;
 
 let flakes = Array.from({ length: 110 }, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 3 + 1,
-    d: Math.random() + 1
+    x: Math.random()*snow.width,
+    y: Math.random()*snow.height,
+    r: Math.random()*3+1,
+    d: Math.random()+1
 }));
 
-let angle = 0;
 setInterval(() => {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "white";
-    ctx.beginPath();
-    flakes.forEach(f => {
-        ctx.moveTo(f.x, f.y);
-        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-        f.y += f.d + 1;
-        f.x += Math.sin(angle);
-        if (f.y > canvas.height) f.y = 0;
+    sctx.clearRect(0,0,snow.width,snow.height);
+    sctx.fillStyle="white";
+    sctx.beginPath();
+    flakes.forEach(f=>{
+        sctx.moveTo(f.x,f.y);
+        sctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+        f.y+=f.d;
+        if(f.y>snow.height) f.y=0;
     });
-    ctx.fill();
-    angle += 0.01;
-}, 25);
+    sctx.fill();
+},25);
 </script>
 
 </body>
