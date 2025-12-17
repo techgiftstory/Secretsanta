@@ -6,12 +6,7 @@
 <title>Secret Santa 🎅</title>
 
 <style>
-/* =========================
-   MOBILE-FIRST BASE
-   ========================= */
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -26,9 +21,7 @@ body {
     height: 100vh;
 }
 
-/* =========================
-   SNOW
-   ========================= */
+/* Snow */
 #snow {
     position: fixed;
     inset: 0;
@@ -36,15 +29,13 @@ body {
     z-index: 0;
 }
 
-/* =========================
-   MAIN CARD (MOBILE OPTIMIZED)
-   ========================= */
+/* Card */
 .card {
     position: relative;
     z-index: 2;
     width: 90vw;
     max-width: 380px;
-    padding: 26px 22px;
+    padding: 26px 22px 20px;
     border-radius: 18px;
     background: rgba(28, 28, 28, 0.95);
     box-shadow: 0 0 30px rgba(255,255,255,0.18);
@@ -56,38 +47,35 @@ body {
     font-size: 26px;
 }
 
-/* =========================
-   INPUTS & BUTTON
-   ========================= */
-select {
+select, button {
     width: 100%;
     padding: 14px;
     font-size: 18px;
     border-radius: 10px;
     border: none;
-    margin-bottom: 16px;
 }
 
 button {
-    width: 100%;
-    padding: 14px;
-    font-size: 18px;
-    border-radius: 10px;
-    border: none;
+    margin-top: 14px;
     background: crimson;
     color: white;
     cursor: pointer;
 }
 
 .result {
-    margin-top: 22px;
+    margin-top: 20px;
     font-size: 20px;
+}
+
+/* Footer */
+.footer {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #bbb;
     line-height: 1.4;
 }
 
-/* =========================
-   DANCING SANTA (SAFE)
-   ========================= */
+/* Dancing Santa */
 .santa {
     position: fixed;
     bottom: 10px;
@@ -99,23 +87,20 @@ button {
 
 @keyframes bounce {
     from { transform: translateY(0); }
-    to { transform: translateY(-14px); }
+    to   { transform: translateY(-14px); }
 }
 </style>
 </head>
 
 <body>
 
-<!-- ❄️ Snow -->
 <canvas id="snow"></canvas>
 
-<!-- 🎅 Dancing Santa -->
 <img
-  src="https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"
+  src="https://media.giphy.com/media/l0MYB8Ory7Hqefo9a/giphy.gif"
   class="santa"
   alt="Dancing Santa">
 
-<!-- 🎁 MAIN UI -->
 <div class="card">
     <h2>🎁 Secret Santa</h2>
 
@@ -126,17 +111,19 @@ button {
     <button onclick="revealSanta()">Reveal My Santa</button>
 
     <div class="result" id="result"></div>
+
+    <div class="footer" id="footer"></div>
 </div>
 
 <script>
-/* =====================================================
-   🔒 FIXED SEED (DO NOT CHANGE)
-   ===================================================== */
+/* ===============================
+   FIXED SEED
+   =============================== */
 const SEED = "SECRET-SANTA-2025-DEC-20";
 
-/* =====================================================
-   HASH FOR data.txt CHANGE DETECTION
-   ===================================================== */
+/* ===============================
+   HASH FOR data.txt CHANGE
+   =============================== */
 function hashString(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -146,9 +133,9 @@ function hashString(str) {
     return hash.toString();
 }
 
-/* =====================================================
-   SEEDED RANDOM (DETERMINISTIC)
-   ===================================================== */
+/* ===============================
+   SEEDED RANDOM
+   =============================== */
 function seededRandom(seed) {
     let h = 2166136261 >>> 0;
     for (let i = 0; i < seed.length; i++) {
@@ -172,37 +159,45 @@ function shuffle(array) {
     }
 }
 
-/* =====================================================
-   USED NAMES STORAGE
-   ===================================================== */
-function getUsedNames() {
-    return JSON.parse(localStorage.getItem("usedNames") || "[]");
+/* ===============================
+   CHECKED NAMES STORAGE
+   =============================== */
+function getChecked() {
+    return JSON.parse(localStorage.getItem("checkedNames") || "[]");
 }
 
-function saveUsedName(name) {
-    const used = getUsedNames();
-    if (!used.includes(name)) {
-        used.push(name);
-        localStorage.setItem("usedNames", JSON.stringify(used));
+function addChecked(name) {
+    const checked = getChecked();
+    if (!checked.includes(name)) {
+        checked.push(name);
+        localStorage.setItem("checkedNames", JSON.stringify(checked));
     }
+    updateFooter();
 }
 
-/* =====================================================
+function updateFooter() {
+    const checked = getChecked();
+    const footer = document.getElementById("footer");
+
+    footer.textContent = checked.length
+        ? `Checked by: ${checked.join(", ")}`
+        : "";
+}
+
+/* ===============================
    SECRET SANTA LOGIC
-   ===================================================== */
+   =============================== */
 let assignments = {};
 let peopleData = [];
 
 fetch('data.txt')
     .then(res => res.text())
     .then(text => {
-
-        // detect data.txt change
         const newHash = hashString(text);
         const oldHash = localStorage.getItem("dataHash");
 
         if (newHash !== oldHash) {
-            localStorage.removeItem("usedNames");
+            localStorage.removeItem("checkedNames");
             localStorage.setItem("dataHash", newHash);
         }
 
@@ -216,21 +211,18 @@ fetch('data.txt')
 
         populateDropdown();
         generateAssignments();
+        updateFooter();
     });
 
 function populateDropdown() {
     const select = document.getElementById('nameSelect');
     select.innerHTML = '<option value="">Select your name</option>';
 
-    const usedNames = getUsedNames();
-
     peopleData.forEach(p => {
-        if (!usedNames.includes(p.name)) {
-            const opt = document.createElement('option');
-            opt.value = p.name;
-            opt.textContent = p.name;
-            select.appendChild(opt);
-        }
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        select.appendChild(opt);
     });
 }
 
@@ -253,8 +245,7 @@ function assignCircular(group) {
 }
 
 function revealSanta() {
-    const select = document.getElementById('nameSelect');
-    const name = select.value;
+    const name = document.getElementById('nameSelect').value;
     const result = document.getElementById('result');
 
     if (!name) {
@@ -263,15 +254,12 @@ function revealSanta() {
     }
 
     result.innerHTML = `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
-
-    saveUsedName(name);
-    select.querySelector(`option[value="${name}"]`).remove();
-    select.value = "";
+    addChecked(name);
 }
 
-/* =====================================================
-   ❄️ SNOWFALL
-   ===================================================== */
+/* ===============================
+   SNOWFALL
+   =============================== */
 const canvas = document.getElementById("snow");
 const ctx = canvas.getContext("2d");
 
@@ -308,11 +296,6 @@ function drawSnow() {
 }
 
 setInterval(drawSnow, 25);
-
-window.onresize = () => {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-};
 </script>
 
 </body>
