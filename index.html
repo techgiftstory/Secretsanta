@@ -37,10 +37,51 @@ body {
     z-index: 3;
 }
 
-/* Main card */
-.card {
+/* Content wrapper */
+.content {
     position: relative;
     z-index: 2;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 🎅 Sleigh track */
+.sleigh-track {
+    width: 100%;
+    height: 64px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+/* Sleigh */
+.sleigh {
+    display: flex;
+    align-items: center;
+    font-size: 30px;
+    position: absolute;
+    left: -260px;
+    animation: sleighMove 14s linear infinite;
+}
+
+/* Gifts bounce */
+.sleigh span:nth-child(n+4) {
+    animation: giftBounce 1s infinite alternate;
+}
+
+/* Sparkles */
+.sparkle {
+    position: absolute;
+    font-size: 14px;
+    opacity: 0.8;
+    animation: sparkleFade 1s linear infinite;
+}
+
+/* Main card */
+.card {
     width: 90vw;
     max-width: 380px;
     padding: 26px 22px 32px;
@@ -75,22 +116,20 @@ button {
     font-size: 20px;
 }
 
-/* 🎄 Merry Christmas Footer */
-.footer {
-    position: fixed;
-    bottom: 14px;
-    width: 100%;
-    text-align: center;
-    font-size: 14px;
-    letter-spacing: 1px;
-    color: #ffd700;
-    z-index: 2;
-    animation: glow 2s infinite alternate;
+/* Animations */
+@keyframes sleighMove {
+    from { transform: translateX(0); }
+    to   { transform: translateX(120%); }
 }
 
-@keyframes glow {
-    from { text-shadow: 0 0 6px #ffdf70; }
-    to   { text-shadow: 0 0 14px #ffb700; }
+@keyframes giftBounce {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-4px); }
+}
+
+@keyframes sparkleFade {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(10px); }
 }
 </style>
 </head>
@@ -100,27 +139,43 @@ button {
 <canvas id="snow"></canvas>
 <canvas id="confetti"></canvas>
 
-<div class="card">
-    <h2>🎁 Secret Santa</h2>
+<div class="content">
 
-    <select id="nameSelect">
-        <option value="">Select your name</option>
-    </select>
+    <!-- 🎅 Santa Sleigh with Reindeer & Sparkles -->
+    <div class="sleigh-track">
+        <div class="sleigh" id="sleigh">
+            <span>🦌</span>
+            <span>🦌</span>
+            <span>🎅</span>
+            <span>🛷</span>
+            <span>🎁</span>
+            <span>🎁</span>
+            <span>🎁</span>
+        </div>
+    </div>
 
-    <button onclick="revealSanta()">Reveal</button>
+    <!-- 🎁 Main Card -->
+    <div class="card">
+        <h2>🎁 Secret Santa</h2>
 
-    <div class="result" id="result"></div>
+        <select id="nameSelect">
+            <option value="">Select your name</option>
+        </select>
+
+        <button onclick="revealSanta()">Reveal</button>
+
+        <div class="result" id="result"></div>
+    </div>
+
 </div>
-
-<div class="footer">🎄 Merry Christmas 🎄</div>
 
 <!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js" defer></script>
 
 <script>
-/* ================= EMAILJS INIT ================= */
+/* ================= EMAILJS ================= */
 window.addEventListener("DOMContentLoaded", function () {
-    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 replace with your key
+    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 REPLACE
 });
 
 /* ================= FIXED SEED ================= */
@@ -204,7 +259,7 @@ function revealSanta() {
     sendAdminEmail(name);
 }
 
-/* ================= EMAIL ================= */
+/* ================= EMAIL SEND ================= */
 function sendAdminEmail(name) {
     emailjs.send(
         "service_3vcerpc",
@@ -214,15 +269,15 @@ function sendAdminEmail(name) {
 }
 
 /* ================= CONFETTI ================= */
-const confettiCanvas = document.getElementById("confetti");
-const cctx = confettiCanvas.getContext("2d");
-confettiCanvas.width = window.innerWidth;
-confettiCanvas.height = window.innerHeight;
+const conf = document.getElementById("confetti");
+const cctx = conf.getContext("2d");
+conf.width = window.innerWidth;
+conf.height = window.innerHeight;
 
 function burstConfetti() {
     let particles = Array.from({ length: 120 }, () => ({
-        x: confettiCanvas.width / 2,
-        y: confettiCanvas.height / 2,
+        x: conf.width / 2,
+        y: conf.height / 2,
         vx: (Math.random() - 0.5) * 8,
         vy: (Math.random() - 0.7) * 8,
         r: Math.random() * 4 + 2,
@@ -231,7 +286,7 @@ function burstConfetti() {
 
     let frame = 0;
     function animate() {
-        cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+        cctx.clearRect(0,0,conf.width,conf.height);
         particles.forEach(p => {
             p.x += p.vx;
             p.y += p.vy;
@@ -243,7 +298,7 @@ function burstConfetti() {
         });
         frame++;
         if (frame < 60) requestAnimationFrame(animate);
-        else cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+        else cctx.clearRect(0,0,conf.width,conf.height);
     }
     animate();
 }
@@ -273,6 +328,18 @@ setInterval(() => {
     });
     sctx.fill();
 },25);
+
+/* ================= SPARKLES ================= */
+const sleigh = document.getElementById("sleigh");
+setInterval(() => {
+    const sp = document.createElement("div");
+    sp.className = "sparkle";
+    sp.textContent = "✨";
+    sp.style.left = (sleigh.offsetLeft + Math.random()*40) + "px";
+    sp.style.top = "20px";
+    document.querySelector(".sleigh-track").appendChild(sp);
+    setTimeout(()=>sp.remove(),1000);
+},300);
 </script>
 
 </body>
