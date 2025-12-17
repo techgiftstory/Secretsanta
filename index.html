@@ -21,7 +21,7 @@ body {
     height: 100vh;
 }
 
-/* Snow */
+/* Snow canvas */
 #snow {
     position: fixed;
     inset: 0;
@@ -29,7 +29,7 @@ body {
     z-index: 0;
 }
 
-/* Card */
+/* Main card */
 .card {
     position: relative;
     z-index: 2;
@@ -108,12 +108,14 @@ button {
     <div class="result" id="result"></div>
 </div>
 
-<!-- EmailJS -->
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<!-- EmailJS library (MUST load before use) -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js" defer></script>
 
 <script>
 /* ================= EMAILJS INIT ================= */
-emailjs.init("YOUR_PUBLIC_KEY");
+window.addEventListener("DOMContentLoaded", function () {
+    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 REPLACE THIS
+});
 
 /* ================= FIXED SEED ================= */
 const SEED = "SECRET-SANTA-2025-DEC-20";
@@ -132,6 +134,7 @@ function seededRandom(seed) {
         return (h >>> 0) / 4294967296;
     };
 }
+
 const rand = seededRandom(SEED);
 
 function shuffle(arr) {
@@ -141,7 +144,7 @@ function shuffle(arr) {
     }
 }
 
-/* ================= SECRET SANTA ================= */
+/* ================= SECRET SANTA LOGIC ================= */
 let assignments = {};
 let peopleData = [];
 
@@ -187,7 +190,10 @@ function assignCircular(group) {
 
 function revealSanta() {
     const name = document.getElementById('nameSelect').value;
-    if (!name) return;
+    if (!name) {
+        alert("Please select your name");
+        return;
+    }
 
     document.getElementById('result').innerHTML =
         `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
@@ -195,17 +201,30 @@ function revealSanta() {
     sendAdminEmail(name);
 }
 
-/* ================= EMAIL NOTIFY ================= */
+/* ================= EMAIL NOTIFICATION ================= */
 function sendAdminEmail(name) {
-    emailjs.send("service_3vcerpc", "template_fw1fyrt", {
-        name: name,
-        time: new Date().toLocaleString()
-    });
+    emailjs.send(
+        "service_3vcerpc",
+        "template_fw1fyrt",
+        {
+            name: name,
+            time: new Date().toLocaleString()
+        }
+    ).then(
+        function (response) {
+            console.log("✅ Email sent", response.status, response.text);
+        },
+        function (error) {
+            console.error("❌ Email failed", error);
+            alert("Email failed. Check console.");
+        }
+    );
 }
 
-/* ================= SNOW ================= */
+/* ================= SNOWFALL ================= */
 const canvas = document.getElementById("snow");
 const ctx = canvas.getContext("2d");
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
@@ -223,7 +242,7 @@ setInterval(() => {
     ctx.beginPath();
     flakes.forEach(f => {
         ctx.moveTo(f.x, f.y);
-        ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
         f.y += f.d + 1;
         f.x += Math.sin(angle);
         if (f.y > canvas.height) f.y = 0;
