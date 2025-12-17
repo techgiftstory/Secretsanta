@@ -6,7 +6,7 @@
 
 <style>
 /* =========================
-   BASE STYLES
+   BASE LAYOUT
    ========================= */
 body {
     margin: 0;
@@ -14,6 +14,12 @@ body {
     background: radial-gradient(circle at top, #222, #000);
     color: #fff;
     overflow: hidden;
+
+    /* CENTER EVERYTHING */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
 /* =========================
@@ -27,20 +33,17 @@ body {
 }
 
 /* =========================
-   MAIN CARD
+   MAIN CARD (CENTERED)
    ========================= */
 .card {
     position: relative;
     z-index: 2;
-    background: rgba(28,28,28,0.95);
+    background: rgba(28, 28, 28, 0.95);
     padding: 30px;
     border-radius: 14px;
     width: 320px;
     text-align: center;
     box-shadow: 0 0 30px rgba(255,255,255,0.15);
-    margin: auto;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
 select, button {
@@ -64,7 +67,7 @@ button {
 }
 
 /* =========================
-   DANCING SANTA
+   DANCING SANTA (ONLY)
    ========================= */
 .santa {
     position: fixed;
@@ -79,23 +82,6 @@ button {
     from { transform: translateY(0); }
     to { transform: translateY(-15px); }
 }
-
-/* =========================
-   MUSIC BUTTON
-   ========================= */
-.music-btn {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 3;
-    background: #ff4444;
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-}
 </style>
 </head>
 
@@ -104,21 +90,13 @@ button {
 <!-- ❄️ Snow -->
 <canvas id="snow"></canvas>
 
-<!-- 🎅 Dancing Santa -->
+<!-- 🎅 Dancing Santa (Safe & Fun) -->
 <img
   src="https://media.giphy.com/media/l0MYB8Ory7Hqefo9a/giphy.gif"
   class="santa"
   alt="Dancing Santa">
 
-<!-- 🔔 Music Button -->
-<button class="music-btn" onclick="toggleMusic()">🔔 Music</button>
-
-<audio id="jingle" loop>
-  <!-- You can replace this with your own Jingle Bells mp3 -->
-  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-</audio>
-
-<!-- 🎁 Main Card -->
+<!-- 🎁 MAIN CONTENT -->
 <div class="card">
     <h2>🎁 Secret Santa</h2>
 
@@ -229,6 +207,7 @@ function revealSanta() {
    ===================================================== */
 const canvas = document.getElementById("snow");
 const ctx = canvas.getContext("2d");
+
 let w = canvas.width = window.innerWidth;
 let h = canvas.height = window.innerHeight;
 
@@ -267,22 +246,6 @@ window.onresize = () => {
     w = canvas.width = window.innerWidth;
     h = canvas.height = window.innerHeight;
 };
-
-/* =====================================================
-   🔔 MUSIC TOGGLE
-   ===================================================== */
-const music = document.getElementById("jingle");
-let playing = false;
-
-function toggleMusic() {
-    if (!playing) {
-        music.play();
-        playing = true;
-    } else {
-        music.pause();
-        playing = false;
-    }
-}
 </script>
 
 </body>
