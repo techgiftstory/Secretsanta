@@ -1,0 +1,6 @@
+Amit,true
+Rohit,true
+Sneha,true
+Priya,false
+Karan,false
+Neha,true
