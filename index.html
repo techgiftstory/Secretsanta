@@ -2,20 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Secret Santa 🎅</title>
 
 <style>
 /* =========================
-   BASE LAYOUT
+   MOBILE-FIRST BASE
    ========================= */
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     background: radial-gradient(circle at top, #222, #000);
     color: #fff;
     overflow: hidden;
 
-    /* CENTER EVERYTHING */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -23,7 +27,7 @@ body {
 }
 
 /* =========================
-   SNOW CANVAS
+   SNOW
    ========================= */
 #snow {
     position: fixed;
@@ -33,54 +37,69 @@ body {
 }
 
 /* =========================
-   MAIN CARD (CENTERED)
+   MAIN CARD (MOBILE OPTIMIZED)
    ========================= */
 .card {
     position: relative;
     z-index: 2;
+    width: 90vw;
+    max-width: 380px;
+    padding: 26px 22px;
+    border-radius: 18px;
     background: rgba(28, 28, 28, 0.95);
-    padding: 30px;
-    border-radius: 14px;
-    width: 320px;
+    box-shadow: 0 0 30px rgba(255,255,255,0.18);
     text-align: center;
-    box-shadow: 0 0 30px rgba(255,255,255,0.15);
 }
 
-select, button {
+.card h2 {
+    margin: 0 0 18px;
+    font-size: 26px;
+}
+
+/* =========================
+   INPUTS & BUTTON
+   ========================= */
+select {
     width: 100%;
-    padding: 10px;
-    margin-top: 12px;
-    border-radius: 6px;
+    padding: 14px;
+    font-size: 18px;
+    border-radius: 10px;
     border: none;
-    font-size: 15px;
+    margin-bottom: 16px;
 }
 
 button {
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    border-radius: 10px;
+    border: none;
     background: crimson;
     color: white;
     cursor: pointer;
 }
 
 .result {
-    margin-top: 20px;
-    font-size: 18px;
+    margin-top: 22px;
+    font-size: 20px;
+    line-height: 1.4;
 }
 
 /* =========================
-   DANCING SANTA (ONLY)
+   DANCING SANTA (SAFE)
    ========================= */
 .santa {
     position: fixed;
     bottom: 10px;
-    right: 20px;
-    width: 120px;
+    right: 10px;
+    width: 90px;
     z-index: 2;
     animation: bounce 1.2s infinite alternate;
 }
 
 @keyframes bounce {
     from { transform: translateY(0); }
-    to { transform: translateY(-15px); }
+    to { transform: translateY(-14px); }
 }
 </style>
 </head>
@@ -90,13 +109,13 @@ button {
 <!-- ❄️ Snow -->
 <canvas id="snow"></canvas>
 
-<!-- 🎅 Dancing Santa (Safe & Fun) -->
+<!-- 🎅 Dancing Santa -->
 <img
-  src="https://pixabay.com/gifs/christmas-winter-xmas-santa-9645/"
+  src="https://media.giphy.com/media/l0MYB8Ory7Hqefo9a/giphy.gif"
   class="santa"
   alt="Dancing Santa">
 
-<!-- 🎁 MAIN CONTENT -->
+<!-- 🎁 MAIN UI -->
 <div class="card">
     <h2>🎁 Secret Santa</h2>
 
@@ -104,7 +123,7 @@ button {
         <option value="">Select your name</option>
     </select>
 
-    <button onclick="revealSanta()">Reveal</button>
+    <button onclick="revealSanta()">Reveal My Santa</button>
 
     <div class="result" id="result"></div>
 </div>
@@ -114,6 +133,18 @@ button {
    🔒 FIXED SEED (DO NOT CHANGE)
    ===================================================== */
 const SEED = "SECRET-SANTA-2025-DEC-20";
+
+/* =====================================================
+   HASH FOR data.txt CHANGE DETECTION
+   ===================================================== */
+function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return hash.toString();
+}
 
 /* =====================================================
    SEEDED RANDOM (DETERMINISTIC)
@@ -142,6 +173,21 @@ function shuffle(array) {
 }
 
 /* =====================================================
+   USED NAMES STORAGE
+   ===================================================== */
+function getUsedNames() {
+    return JSON.parse(localStorage.getItem("usedNames") || "[]");
+}
+
+function saveUsedName(name) {
+    const used = getUsedNames();
+    if (!used.includes(name)) {
+        used.push(name);
+        localStorage.setItem("usedNames", JSON.stringify(used));
+    }
+}
+
+/* =====================================================
    SECRET SANTA LOGIC
    ===================================================== */
 let assignments = {};
@@ -150,6 +196,16 @@ let peopleData = [];
 fetch('data.txt')
     .then(res => res.text())
     .then(text => {
+
+        // detect data.txt change
+        const newHash = hashString(text);
+        const oldHash = localStorage.getItem("dataHash");
+
+        if (newHash !== oldHash) {
+            localStorage.removeItem("usedNames");
+            localStorage.setItem("dataHash", newHash);
+        }
+
         peopleData = text.trim().split('\n').map(line => {
             const [name, status] = line.split(',');
             return {
@@ -164,11 +220,17 @@ fetch('data.txt')
 
 function populateDropdown() {
     const select = document.getElementById('nameSelect');
+    select.innerHTML = '<option value="">Select your name</option>';
+
+    const usedNames = getUsedNames();
+
     peopleData.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name;
-        opt.textContent = p.name;
-        select.appendChild(opt);
+        if (!usedNames.includes(p.name)) {
+            const opt = document.createElement('option');
+            opt.value = p.name;
+            opt.textContent = p.name;
+            select.appendChild(opt);
+        }
     });
 }
 
@@ -191,7 +253,8 @@ function assignCircular(group) {
 }
 
 function revealSanta() {
-    const name = document.getElementById('nameSelect').value;
+    const select = document.getElementById('nameSelect');
+    const name = select.value;
     const result = document.getElementById('result');
 
     if (!name) {
@@ -200,10 +263,14 @@ function revealSanta() {
     }
 
     result.innerHTML = `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
+
+    saveUsedName(name);
+    select.querySelector(`option[value="${name}"]`).remove();
+    select.value = "";
 }
 
 /* =====================================================
-   ❄️ SNOWFALL EFFECT
+   ❄️ SNOWFALL
    ===================================================== */
 const canvas = document.getElementById("snow");
 const ctx = canvas.getContext("2d");
@@ -211,7 +278,7 @@ const ctx = canvas.getContext("2d");
 let w = canvas.width = window.innerWidth;
 let h = canvas.height = window.innerHeight;
 
-let flakes = Array.from({ length: 120 }, () => ({
+let flakes = Array.from({ length: 110 }, () => ({
     x: Math.random() * w,
     y: Math.random() * h,
     r: Math.random() * 3 + 1,
