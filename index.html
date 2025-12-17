@@ -14,10 +14,11 @@ body {
     background: radial-gradient(circle at top, #222, #000);
     color: #fff;
     overflow: hidden;
+
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100svh;
 }
 
 /* Snow */
@@ -61,11 +62,10 @@ body {
     position: absolute;
     top: 0;
     left: 10px;
-    width: 230px;               /* 🔑 fixed width */
+    width: 240px;
     display: flex;
     align-items: center;
     font-size: 30px;
-
     animation: sleighOscillate 8s ease-in-out infinite alternate;
 }
 
@@ -121,7 +121,7 @@ button {
 /* Animations */
 @keyframes sleighOscillate {
     from { left: 10px; }
-    to   { left: calc(100% - 240px); } /* stays fully visible */
+    to   { left: calc(100% - 250px); }
 }
 
 @keyframes giftBounce {
@@ -160,7 +160,7 @@ button {
     <div class="card">
         <h2>🎁 Secret Santa</h2>
 
-        <select id="nameSelect">
+        <select id="nameSelect" onchange="onNameSelected()">
             <option value="">Select your name</option>
         </select>
 
@@ -175,13 +175,25 @@ button {
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js" defer></script>
 
 <script>
-/* EmailJS */
+/* ================= EMAILJS ================= */
 window.addEventListener("DOMContentLoaded", () => {
-    emailjs.init("d4pCP080P5Tsb8mSA");
+    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 replace this
 });
 
-/* Seeded random */
+/* ================= DROPDOWN MOBILE FIX ================= */
+function onNameSelected() {
+    const select = document.getElementById("nameSelect");
+    select.blur();
+    document.querySelector(".card").scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+}
+
+/* ================= FIXED SEED ================= */
 const SEED = "SECRET-SANTA-2025-DEC-20";
+
+/* ================= SEEDED RANDOM ================= */
 function seededRandom(seed) {
     let h = 2166136261 >>> 0;
     for (let i = 0; i < seed.length; i++) {
@@ -197,89 +209,130 @@ function seededRandom(seed) {
 }
 const rand = seededRandom(SEED);
 
-function shuffle(a) {
-    for (let i = a.length - 1; i > 0; i--) {
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(rand() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
 }
 
-/* Secret Santa */
-let assignments = {}, peopleData = [];
+/* ================= SECRET SANTA ================= */
+let assignments = {};
+let peopleData = [];
 
-fetch('data.txt').then(r => r.text()).then(t => {
-    peopleData = t.trim().split('\n').map(l => {
-        const [n,s] = l.split(',');
-        return { name: n.trim(), present: s.trim()==='true' };
+fetch('data.txt')
+.then(res => res.text())
+.then(text => {
+    peopleData = text.trim().split('\n').map(line => {
+        const [name, status] = line.split(',');
+        return { name: name.trim(), present: status.trim() === 'true' };
     });
-    const sel = document.getElementById('nameSelect');
+
+    const select = document.getElementById('nameSelect');
     peopleData.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.name; o.textContent = p.name;
-        sel.appendChild(o);
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        select.appendChild(opt);
     });
-    const pres = peopleData.filter(p=>p.present).map(p=>p.name);
-    const abs  = peopleData.filter(p=>!p.present).map(p=>p.name);
-    shuffle(pres); shuffle(abs);
-    [...pres, ...abs].forEach((n,i,arr)=>assignments[n]=arr[(i+1)%arr.length]);
+
+    const present = peopleData.filter(p => p.present).map(p => p.name);
+    const absent  = peopleData.filter(p => !p.present).map(p => p.name);
+    shuffle(present);
+    shuffle(absent);
+
+    present.forEach((n,i)=>assignments[n]=present[(i+1)%present.length]);
+    absent.forEach((n,i)=>assignments[n]=absent[(i+1)%absent.length]);
 });
 
 function revealSanta() {
     const name = nameSelect.value;
-    if (!name) return;
-    result.innerHTML = `🎁 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
+    if (!name) {
+        alert("Please select your name");
+        return;
+    }
+
+    result.innerHTML =
+        `🎁 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
+
     burstConfetti();
-    emailjs.send("service_3vcerpc","template_fw1fyrt",{name,time:new Date().toLocaleString()});
+    emailjs.send(
+        "service_3vcerpc",
+        "template_fw1fyrt",
+        { name, time: new Date().toLocaleString() }
+    );
 }
 
-/* Confetti */
+/* ================= CONFETTI ================= */
 const conf = document.getElementById("confetti");
 const cctx = conf.getContext("2d");
-conf.width = innerWidth; conf.height = innerHeight;
-function burstConfetti(){
-    const p = Array.from({length:120},()=>({
-        x:conf.width/2,y:conf.height/2,
-        vx:(Math.random()-.5)*8,vy:(Math.random()-.7)*8,
-        r:Math.random()*4+2,c:`hsl(${Math.random()*360},100%,60%)`
+conf.width = innerWidth;
+conf.height = innerHeight;
+
+function burstConfetti() {
+    const particles = Array.from({ length: 120 }, () => ({
+        x: conf.width / 2,
+        y: conf.height / 2,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.7) * 8,
+        r: Math.random() * 4 + 2,
+        c: `hsl(${Math.random() * 360},100%,60%)`
     }));
-    let f=0; (function anim(){
+
+    let frame = 0;
+    (function animate() {
         cctx.clearRect(0,0,conf.width,conf.height);
-        p.forEach(o=>{
-            o.x+=o.vx; o.y+=o.vy; o.vy+=.2;
-            cctx.fillStyle=o.c;
-            cctx.beginPath(); cctx.arc(o.x,o.y,o.r,0,Math.PI*2); cctx.fill();
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.2;
+            cctx.fillStyle = p.c;
+            cctx.beginPath();
+            cctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            cctx.fill();
         });
-        if(++f<60) requestAnimationFrame(anim);
+        if (++frame < 60) requestAnimationFrame(animate);
     })();
 }
 
-/* Snow */
+/* ================= SNOW ================= */
 const snow = document.getElementById("snow");
 const sctx = snow.getContext("2d");
-snow.width=innerWidth; snow.height=innerHeight;
-const flakes = Array.from({length:110},()=>({x:Math.random()*snow.width,y:Math.random()*snow.height,r:Math.random()*3+1,d:Math.random()+1}));
-setInterval(()=>{
+snow.width = innerWidth;
+snow.height = innerHeight;
+
+const flakes = Array.from({ length: 110 }, () => ({
+    x: Math.random() * snow.width,
+    y: Math.random() * snow.height,
+    r: Math.random() * 3 + 1,
+    d: Math.random() + 1
+}));
+
+setInterval(() => {
     sctx.clearRect(0,0,snow.width,snow.height);
-    sctx.fillStyle="white"; sctx.beginPath();
+    sctx.fillStyle="white";
+    sctx.beginPath();
     flakes.forEach(f=>{
         sctx.moveTo(f.x,f.y);
         sctx.arc(f.x,f.y,f.r,0,Math.PI*2);
-        f.y+=f.d; if(f.y>snow.height) f.y=0;
+        f.y+=f.d;
+        if(f.y>snow.height) f.y=0;
     });
     sctx.fill();
 },25);
 
-/* Sparkles */
-setInterval(()=>{
-    const sp=document.createElement("div");
-    sp.className="sparkle"; sp.textContent="✨";
-    sp.style.left=(sleigh.offsetLeft+40)+"px";
-    sp.style.top="18px";
+/* ================= SPARKLES ================= */
+const sleigh = document.getElementById("sleigh");
+setInterval(() => {
+    const sp = document.createElement("div");
+    sp.className = "sparkle";
+    sp.textContent = "✨";
+    sp.style.left = (sleigh.offsetLeft + 40) + "px";
+    sp.style.top = "18px";
     document.querySelector(".sleigh-track").appendChild(sp);
-    setTimeout(()=>sp.remove(),1000);
-},300);
+    setTimeout(() => sp.remove(), 1000);
+}, 300);
 </script>
 
 </body>
 </html>
-
