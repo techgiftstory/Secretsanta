@@ -10,7 +10,7 @@
 
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: system-ui, sans-serif;
     background: radial-gradient(circle at top, #222, #000);
     color: #fff;
     overflow: hidden;
@@ -35,16 +35,16 @@ body {
     z-index: 2;
     width: 90vw;
     max-width: 380px;
-    padding: 26px 22px 20px;
+    padding: 26px 22px;
     border-radius: 18px;
-    background: rgba(28, 28, 28, 0.95);
+    background: rgba(28,28,28,0.95);
     box-shadow: 0 0 30px rgba(255,255,255,0.18);
     text-align: center;
 }
 
-.card h2 {
-    margin: 0 0 18px;
+h2 {
     font-size: 26px;
+    margin-bottom: 18px;
 }
 
 select, button {
@@ -67,14 +67,6 @@ button {
     font-size: 20px;
 }
 
-/* Footer */
-.footer {
-    margin-top: 16px;
-    font-size: 12px;
-    color: #bbb;
-    line-height: 1.4;
-}
-
 /* Dancing Santa */
 .santa {
     position: fixed;
@@ -87,7 +79,7 @@ button {
 
 @keyframes bounce {
     from { transform: translateY(0); }
-    to   { transform: translateY(-14px); }
+    to { transform: translateY(-14px); }
 }
 </style>
 </head>
@@ -111,31 +103,19 @@ button {
     <button onclick="revealSanta()">Reveal My Santa</button>
 
     <div class="result" id="result"></div>
-
-    <div class="footer" id="footer"></div>
 </div>
 
+<!-- EMAILJS -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
 <script>
-/* ===============================
-   FIXED SEED
-   =============================== */
+/* ================= EMAILJS INIT ================= */
+emailjs.init("YOUR_PUBLIC_KEY");
+
+/* ================= FIXED SEED ================= */
 const SEED = "SECRET-SANTA-2025-DEC-20";
 
-/* ===============================
-   HASH FOR data.txt CHANGE
-   =============================== */
-function hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash) + str.charCodeAt(i);
-        hash |= 0;
-    }
-    return hash.toString();
-}
-
-/* ===============================
-   SEEDED RANDOM
-   =============================== */
+/* ================= SEEDED RANDOM ================= */
 function seededRandom(seed) {
     let h = 2166136261 >>> 0;
     for (let i = 0; i < seed.length; i++) {
@@ -149,75 +129,33 @@ function seededRandom(seed) {
         return (h >>> 0) / 4294967296;
     };
 }
-
 const rand = seededRandom(SEED);
 
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(rand() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
 }
 
-/* ===============================
-   CHECKED NAMES STORAGE
-   =============================== */
-function getChecked() {
-    return JSON.parse(localStorage.getItem("checkedNames") || "[]");
-}
-
-function addChecked(name) {
-    const checked = getChecked();
-    if (!checked.includes(name)) {
-        checked.push(name);
-        localStorage.setItem("checkedNames", JSON.stringify(checked));
-    }
-    updateFooter();
-}
-
-function updateFooter() {
-    const checked = getChecked();
-    const footer = document.getElementById("footer");
-
-    footer.textContent = checked.length
-        ? `Checked by: ${checked.join(", ")}`
-        : "";
-}
-
-/* ===============================
-   SECRET SANTA LOGIC
-   =============================== */
+/* ================= SECRET SANTA ================= */
 let assignments = {};
 let peopleData = [];
 
 fetch('data.txt')
-    .then(res => res.text())
-    .then(text => {
-        const newHash = hashString(text);
-        const oldHash = localStorage.getItem("dataHash");
-
-        if (newHash !== oldHash) {
-            localStorage.removeItem("checkedNames");
-            localStorage.setItem("dataHash", newHash);
-        }
-
-        peopleData = text.trim().split('\n').map(line => {
-            const [name, status] = line.split(',');
-            return {
-                name: name.trim(),
-                present: status.trim().toLowerCase() === 'true'
-            };
-        });
-
-        populateDropdown();
-        generateAssignments();
-        updateFooter();
+.then(res => res.text())
+.then(text => {
+    peopleData = text.trim().split('\n').map(line => {
+        const [name, status] = line.split(',');
+        return { name: name.trim(), present: status.trim() === 'true' };
     });
+
+    populateDropdown();
+    generateAssignments();
+});
 
 function populateDropdown() {
     const select = document.getElementById('nameSelect');
-    select.innerHTML = '<option value="">Select your name</option>';
-
     peopleData.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.name;
@@ -246,56 +184,50 @@ function assignCircular(group) {
 
 function revealSanta() {
     const name = document.getElementById('nameSelect').value;
-    const result = document.getElementById('result');
+    if (!name) return;
 
-    if (!name) {
-        result.textContent = "Please select your name.";
-        return;
-    }
+    document.getElementById('result').innerHTML =
+        `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
 
-    result.innerHTML = `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
-    addChecked(name);
+    sendAdminEmail(name);
 }
 
-/* ===============================
-   SNOWFALL
-   =============================== */
+/* ================= EMAIL NOTIFY ================= */
+function sendAdminEmail(name) {
+    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+        name: name,
+        time: new Date().toLocaleString()
+    });
+}
+
+/* ================= SNOW ================= */
 const canvas = document.getElementById("snow");
 const ctx = canvas.getContext("2d");
-
-let w = canvas.width = window.innerWidth;
-let h = canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 let flakes = Array.from({ length: 110 }, () => ({
-    x: Math.random() * w,
-    y: Math.random() * h,
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
     r: Math.random() * 3 + 1,
     d: Math.random() + 1
 }));
 
 let angle = 0;
-function drawSnow() {
-    ctx.clearRect(0, 0, w, h);
+setInterval(() => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = "white";
     ctx.beginPath();
     flakes.forEach(f => {
         ctx.moveTo(f.x, f.y);
-        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+        f.y += f.d + 1;
+        f.x += Math.sin(angle);
+        if (f.y > canvas.height) f.y = 0;
     });
     ctx.fill();
-
     angle += 0.01;
-    flakes.forEach(f => {
-        f.y += Math.pow(f.d, 2) + 1;
-        f.x += Math.sin(angle);
-        if (f.y > h) {
-            f.y = 0;
-            f.x = Math.random() * w;
-        }
-    });
-}
-
-setInterval(drawSnow, 25);
+}, 25);
 </script>
 
 </body>
