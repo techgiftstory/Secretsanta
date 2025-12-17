@@ -5,44 +5,120 @@
 <title>Secret Santa 🎅</title>
 
 <style>
+/* =========================
+   BASE STYLES
+   ========================= */
 body {
+    margin: 0;
     font-family: Arial, sans-serif;
-    background: #111;
+    background: radial-gradient(circle at top, #222, #000);
     color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    overflow: hidden;
 }
+
+/* =========================
+   SNOW CANVAS
+   ========================= */
+#snow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* =========================
+   MAIN CARD
+   ========================= */
 .card {
-    background: #1c1c1c;
+    position: relative;
+    z-index: 2;
+    background: rgba(28,28,28,0.95);
     padding: 30px;
-    border-radius: 12px;
+    border-radius: 14px;
     width: 320px;
     text-align: center;
+    box-shadow: 0 0 30px rgba(255,255,255,0.15);
+    margin: auto;
+    top: 50%;
+    transform: translateY(-50%);
 }
+
 select, button {
     width: 100%;
     padding: 10px;
     margin-top: 12px;
     border-radius: 6px;
     border: none;
+    font-size: 15px;
 }
+
 button {
     background: crimson;
     color: white;
-    font-size: 16px;
     cursor: pointer;
 }
+
 .result {
     margin-top: 20px;
     font-size: 18px;
+}
+
+/* =========================
+   DANCING SANTA
+   ========================= */
+.santa {
+    position: fixed;
+    bottom: 10px;
+    right: 20px;
+    width: 120px;
+    z-index: 2;
+    animation: bounce 1.2s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-15px); }
+}
+
+/* =========================
+   MUSIC BUTTON
+   ========================= */
+.music-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 3;
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
 }
 </style>
 </head>
 
 <body>
 
+<!-- ❄️ Snow -->
+<canvas id="snow"></canvas>
+
+<!-- 🎅 Dancing Santa -->
+<img
+  src="https://media.giphy.com/media/l0MYB8Ory7Hqefo9a/giphy.gif"
+  class="santa"
+  alt="Dancing Santa">
+
+<!-- 🔔 Music Button -->
+<button class="music-btn" onclick="toggleMusic()">🔔 Music</button>
+
+<audio id="jingle" loop>
+  <!-- You can replace this with your own Jingle Bells mp3 -->
+  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
+
+<!-- 🎁 Main Card -->
 <div class="card">
     <h2>🎁 Secret Santa</h2>
 
@@ -50,19 +126,19 @@ button {
         <option value="">Select your name</option>
     </select>
 
-    <button onclick="revealSanta()">Reveal</button>
+    <button onclick="revealSanta()">Reveal My Santa</button>
 
     <div class="result" id="result"></div>
 </div>
 
 <script>
 /* =====================================================
-   🔒 FIXED SEED (DO NOT CHANGE AFTER EVENT STARTS)
+   🔒 FIXED SEED (DO NOT CHANGE)
    ===================================================== */
 const SEED = "SECRET-SANTA-2025-DEC-20";
 
 /* =====================================================
-   SEEDED RANDOM GENERATOR (DETERMINISTIC)
+   SEEDED RANDOM (DETERMINISTIC)
    ===================================================== */
 function seededRandom(seed) {
     let h = 2166136261 >>> 0;
@@ -80,9 +156,6 @@ function seededRandom(seed) {
 
 const rand = seededRandom(SEED);
 
-/* =====================================================
-   DETERMINISTIC SHUFFLE
-   ===================================================== */
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(rand() * (i + 1));
@@ -91,7 +164,7 @@ function shuffle(array) {
 }
 
 /* =====================================================
-   MAIN LOGIC
+   SECRET SANTA LOGIC
    ===================================================== */
 let assignments = {};
 let peopleData = [];
@@ -100,7 +173,7 @@ fetch('data.txt')
     .then(res => res.text())
     .then(text => {
         peopleData = text.trim().split('\n').map(line => {
-            let [name, status] = line.split(',');
+            const [name, status] = line.split(',');
             return {
                 name: name.trim(),
                 present: status.trim().toLowerCase() === 'true'
@@ -114,10 +187,10 @@ fetch('data.txt')
 function populateDropdown() {
     const select = document.getElementById('nameSelect');
     peopleData.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.name;
-        option.textContent = p.name;
-        select.appendChild(option);
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        select.appendChild(opt);
     });
 }
 
@@ -149,6 +222,66 @@ function revealSanta() {
     }
 
     result.innerHTML = `🎄 You are Secret Santa for:<br><strong>${assignments[name]}</strong>`;
+}
+
+/* =====================================================
+   ❄️ SNOWFALL EFFECT
+   ===================================================== */
+const canvas = document.getElementById("snow");
+const ctx = canvas.getContext("2d");
+let w = canvas.width = window.innerWidth;
+let h = canvas.height = window.innerHeight;
+
+let flakes = Array.from({ length: 120 }, () => ({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    r: Math.random() * 3 + 1,
+    d: Math.random() + 1
+}));
+
+let angle = 0;
+function drawSnow() {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    flakes.forEach(f => {
+        ctx.moveTo(f.x, f.y);
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+    });
+    ctx.fill();
+
+    angle += 0.01;
+    flakes.forEach(f => {
+        f.y += Math.pow(f.d, 2) + 1;
+        f.x += Math.sin(angle);
+        if (f.y > h) {
+            f.y = 0;
+            f.x = Math.random() * w;
+        }
+    });
+}
+
+setInterval(drawSnow, 25);
+
+window.onresize = () => {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+};
+
+/* =====================================================
+   🔔 MUSIC TOGGLE
+   ===================================================== */
+const music = document.getElementById("jingle");
+let playing = false;
+
+function toggleMusic() {
+    if (!playing) {
+        music.play();
+        playing = true;
+    } else {
+        music.pause();
+        playing = false;
+    }
 }
 </script>
 
