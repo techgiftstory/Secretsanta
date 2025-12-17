@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Secret Santa 🎅</title>
+
 <style>
 body {
     font-family: Arial, sans-serif;
@@ -49,12 +50,49 @@ button {
         <option value="">Select your name</option>
     </select>
 
-    <button onclick="revealSanta()">Reveal My Santa</button>
+    <button onclick="revealSanta()">Reveal</button>
 
     <div class="result" id="result"></div>
 </div>
 
 <script>
+/* =====================================================
+   🔒 FIXED SEED (DO NOT CHANGE AFTER EVENT STARTS)
+   ===================================================== */
+const SEED = "SECRET-SANTA-2025-DEC-20";
+
+/* =====================================================
+   SEEDED RANDOM GENERATOR (DETERMINISTIC)
+   ===================================================== */
+function seededRandom(seed) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < seed.length; i++) {
+        h ^= seed.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return function () {
+        h += h << 13; h ^= h >>> 7;
+        h += h << 3;  h ^= h >>> 17;
+        h += h << 5;
+        return (h >>> 0) / 4294967296;
+    };
+}
+
+const rand = seededRandom(SEED);
+
+/* =====================================================
+   DETERMINISTIC SHUFFLE
+   ===================================================== */
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+/* =====================================================
+   MAIN LOGIC
+   ===================================================== */
 let assignments = {};
 let peopleData = [];
 
@@ -63,7 +101,10 @@ fetch('data.txt')
     .then(text => {
         peopleData = text.trim().split('\n').map(line => {
             let [name, status] = line.split(',');
-            return { name: name.trim(), present: status.trim() === 'true' };
+            return {
+                name: name.trim(),
+                present: status.trim().toLowerCase() === 'true'
+            };
         });
 
         populateDropdown();
@@ -73,23 +114,16 @@ fetch('data.txt')
 function populateDropdown() {
     const select = document.getElementById('nameSelect');
     peopleData.forEach(p => {
-        let option = document.createElement('option');
+        const option = document.createElement('option');
         option.value = p.name;
         option.textContent = p.name;
         select.appendChild(option);
     });
 }
 
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-
 function generateAssignments() {
     const present = peopleData.filter(p => p.present).map(p => p.name);
-    const absent = peopleData.filter(p => !p.present).map(p => p.name);
+    const absent  = peopleData.filter(p => !p.present).map(p => p.name);
 
     shuffle(present);
     shuffle(absent);
@@ -101,9 +135,7 @@ function generateAssignments() {
 function assignCircular(group) {
     if (group.length < 2) return;
     for (let i = 0; i < group.length; i++) {
-        let giver = group[i];
-        let receiver = group[(i + 1) % group.length];
-        assignments[giver] = receiver;
+        assignments[group[i]] = group[(i + 1) % group.length];
     }
 }
 
