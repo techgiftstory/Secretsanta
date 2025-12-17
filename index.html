@@ -14,7 +14,6 @@ body {
     background: radial-gradient(circle at top, #222, #000);
     color: #fff;
     overflow: hidden;
-
     display: flex;
     justify-content: center;
     align-items: center;
@@ -48,36 +47,36 @@ body {
     align-items: center;
 }
 
-/* 🎅 Sleigh track */
+/* Sleigh track (TOP) */
 .sleigh-track {
     width: 100%;
     height: 64px;
+    position: relative;
     overflow: hidden;
     margin-bottom: 10px;
-    position: relative;
 }
 
 /* Sleigh */
 .sleigh {
+    position: absolute;
+    left: 0;
     display: flex;
     align-items: center;
     font-size: 30px;
-    position: absolute;
-    left: -260px;
-    animation: sleighMove 14s linear infinite;
+    animation: sleighMove 10s linear infinite alternate;
 }
 
-/* Gifts bounce */
+/* Gift bounce */
 .sleigh span:nth-child(n+4) {
     animation: giftBounce 1s infinite alternate;
 }
 
-/* Sparkles */
+/* Sparkle */
 .sparkle {
     position: absolute;
     font-size: 14px;
-    opacity: 0.8;
-    animation: sparkleFade 1s linear infinite;
+    opacity: 0.9;
+    animation: sparkleFade 1s linear forwards;
 }
 
 /* Main card */
@@ -118,14 +117,9 @@ button {
 
 /* Animations */
 @keyframes sleighMove {
-    from {
-        transform: translateX(120%);
-    }
-    to {
-        transform: translateX(-260px);
-    }
+    from { transform: translateX(0); }
+    to   { transform: translateX(calc(100% - 240px)); }
 }
-
 
 @keyframes giftBounce {
     from { transform: translateY(0); }
@@ -133,8 +127,8 @@ button {
 }
 
 @keyframes sparkleFade {
-    0% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(10px); }
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(10px); }
 }
 </style>
 </head>
@@ -146,7 +140,7 @@ button {
 
 <div class="content">
 
-    <!-- 🎅 Santa Sleigh with Reindeer & Sparkles -->
+    <!-- 🎅 Sleigh -->
     <div class="sleigh-track">
         <div class="sleigh" id="sleigh">
             <span>🦌</span>
@@ -180,7 +174,7 @@ button {
 <script>
 /* ================= EMAILJS ================= */
 window.addEventListener("DOMContentLoaded", function () {
-    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 REPLACE
+    emailjs.init("d4pCP080P5Tsb8mSA"); // 🔴 replace this
 });
 
 /* ================= FIXED SEED ================= */
@@ -220,7 +214,6 @@ fetch('data.txt')
         const [name, status] = line.split(',');
         return { name: name.trim(), present: status.trim() === 'true' };
     });
-
     populateDropdown();
     generateAssignments();
 });
@@ -238,10 +231,8 @@ function populateDropdown() {
 function generateAssignments() {
     const present = peopleData.filter(p => p.present).map(p => p.name);
     const absent  = peopleData.filter(p => !p.present).map(p => p.name);
-
     shuffle(present);
     shuffle(absent);
-
     assignCircular(present);
     assignCircular(absent);
 }
@@ -340,8 +331,8 @@ setInterval(() => {
     const sp = document.createElement("div");
     sp.className = "sparkle";
     sp.textContent = "✨";
-    sp.style.left = (sleigh.offsetLeft + Math.random()*40) + "px";
-    sp.style.top = "20px";
+    sp.style.left = (sleigh.offsetLeft + Math.random()*60) + "px";
+    sp.style.top = "18px";
     document.querySelector(".sleigh-track").appendChild(sp);
     setTimeout(()=>sp.remove(),1000);
 },300);
